@@ -6,6 +6,10 @@ A flexible Discord bot designed to assist server moderators with **voice channel
 
 ## ✨ Features
 
+🚧 **Notice: This project is currently under construction.**  
+Some features may not be fully functional or implemented yet. Contributions and feedback are welcome as development continues!  
+
+
 ### 🔊 Automatic Voice Channel Management
 - Automatically unmutes users when they join or switch voice channels.
 - Logs auto-unmute actions to a specified "Mute Log" channel.
