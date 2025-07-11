@@ -1,177 +1,152 @@
 # 🎙️ Discord Voice Management Bot
 
-A flexible Discord bot designed to assist server moderators with **voice channel management**, **user role management**, and **action logging**. This bot is especially useful for managing a "detain" role and logging mute/unmute events for seamless moderation.
+> 🚧 ⚠️ **Disclaimer**  
+> This project is **not currently under active development**.  
+> While the features and setup instructions are provided, there may be bugs or outdated information.  
+> Contributions and feedback are still welcome, but users should be aware that support may be limited.
+
+A flexible Discord bot to help server moderators manage **voice channels**, **roles**, and **moderation logs**. Ideal for handling "detain" scenarios and tracking mute/unmute actions seamlessly.
 
 ---
 
 ## ✨ Features
 
-🚧 **Notice: This project is currently under construction.**  
-Some features may not be fully functional or implemented yet. Contributions and feedback are welcome as development continues!  
-
-
 ### 🔊 Automatic Voice Channel Management
-- Automatically unmutes users when they join or switch voice channels.
-- Logs auto-unmute actions to a specified "Mute Log" channel.
-- Notifies the user via DM about their auto-unmute.
+- Automatically unmutes users upon joining or switching voice channels.
+- Logs unmute events to a dedicated channel.
+- Notifies users via DM.
 
 ### 🛡️ Detain Role Management
-- **Assign the Detain Role**:
-  - Use the `.detain` command to give a user the "Detain Role."
-  - Logs the action in a specified "Detain Log" channel.
-  - Notifies the user via DM that they have been detained.
-- **Remove the Detain Role**:
-  - Use the `.undetain` command to remove the "Detain Role."
-  - Logs the action in the same "Detain Log" channel.
-  - Notifies the user via DM that they have been undetained.
+- Use `.detain` to assign a restricted role to users.
+- Use `.undetain` to remove the restricted role.
+- Sends DM notifications and logs both actions.
 
-### 📜 Logging
-- **Mute/Unmute Logging**:
-  - Tracks and logs manual mute/unmute actions performed by moderators.
-  - Logs include the affected user, the moderator, and timestamps.
-  - Sends a DM to the affected user.
-- **Detain/Undetain Logging**:
-  - Tracks and logs when the "Detain Role" is added or removed manually or via commands.
+### 📜 Moderation Logging
+- Logs manual mute/unmute actions and moderator info.
+- Sends DMs to the affected users.
+- All logs are timestamped and posted to configured channels.
 
-### 📌 Dynamic Permissions
-- (Optional) Grants dynamic mute permissions in new voice channels for selected users if configured.
-
-### 🙌 Credit Command
-- Displays bot credits via the `.credits` command in a subtle and professional manner.
+### 🧠 Smart Configuration
+- Uses `.env` and `config.json` for clean, secure setup.
+- Easily adaptable to any Discord server.
 
 ---
 
 ## 🛠️ Setup Instructions
 
-### Prerequisites
-- Python 3.8 or higher
-- A Discord bot token (you can create one at https://discord.com/developers/applications)
-- Basic knowledge of Discord server roles and permissions.
+### ✅ Requirements
+- Python 3.8+
+- A Discord Bot Token from https://discord.com/developers/applications
+- Admin access to your Discord server
 
-### Installation Steps
+### 🧩 Installation Steps
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourgithubprofile/discord-voice-management-bot.git
-   cd discord-voice-management-bot
-   ```
+```bash
+git clone https://github.com/arturpedrotti/discord-voice-manager.git
+cd discord-voice-manager
+pip install -r requirements.txt
+```
 
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 🔐 Bot Configuration
 
-3. Configure the bot:
-   - **Create a `.env` File**:  
-     Copy the example `.env` file and add your bot token:
-     ```bash
-     cp .env.example .env
-     ```
-     Add your Discord bot token to the `.env` file:
-     ```env
-     DISCORD_BOT_TOKEN=your-bot-token-here
-     ```
+#### 1. `.env`
+Create a `.env` file to store your secret token:
 
-   - **Create a `config.json` File**:  
-     Copy the example configuration file and update it with your server-specific details:
-     ```bash
-     cp config_template.json config.json
-     ```
-     Populate the `config.json` file with the following:
-     ```json
-     {
-       "MUTE_LOG_CHANNEL_ID": 123456789012345678,
-       "DETAIN_ROLE_ID": 123456789012345678,
-       "DETAIN_LOG_CHANNEL_ID": 123456789012345678,
-       "VOICEMASTER_BOT_ID": 123456789012345678
-     }
-     ```
-     Replace the placeholder IDs with the actual IDs for your server:
-     - **MUTE_LOG_CHANNEL_ID**: Channel ID for mute/unmute logs.
-     - **DETAIN_ROLE_ID**: Role ID for the detain role.
-     - **DETAIN_LOG_CHANNEL_ID**: Channel ID for detain/undetain logs.
-     - **VOICEMASTER_BOT_ID**: (Optional) Bot ID of the VoiceMaster bot for dynamic permissions.
+```bash
+touch .env
+```
 
-4. Run the bot:
-   ```bash
-   python discord_voice_manager.py
-   ```
+Paste this line into `.env`:
+
+```env
+DISCORD_BOT_TOKEN=your-discord-token-here
+```
+
+#### 2. `config.json`
+Create a `config.json` using the template below:
+
+```json
+{
+  "MUTE_LOG_CHANNEL_ID": 123456789012345678,
+  "DETAIN_ROLE_ID": 123456789012345678,
+  "DETAIN_LOG_CHANNEL_ID": 123456789012345678,
+  "VOICEMASTER_BOT_ID": 123456789012345678
+}
+```
+
+> Replace all `123456789012345678` with real Discord channel or role IDs from your server.
+
+You can optionally create `config_template.json` and `.env.example` in the repo to help others.
+
+---
+
+## 🚀 Running the Bot
+
+```bash
+python discord_voice_manager.py
+```
+
+The bot will log in and respond to voice and role events.
 
 ---
 
 ## 📋 Commands
 
-| Command          | Description                                                                                          | Example                    |
-|-------------------|------------------------------------------------------------------------------------------------------|----------------------------|
-| `.detain @member` | Assigns the "Detain Role" to a user, logs the action, and sends a DM to the user.                    | `.detain @JohnDoe`         |
-| `.undetain @member` | Removes the "Detain Role" from a user, logs the action, and sends a DM to the user.                | `.undetain @JohnDoe`       |
-| `.credits`        | Displays bot credits in a professional and subtle manner.                                           | `.credits`                 |
+| Command             | Description                                                               |
+|---------------------|---------------------------------------------------------------------------|
+| `.detain @user`     | Assigns the detain role and notifies/logs the action                      |
+| `.undetain @user`   | Removes the detain role and notifies/logs the action                      |
+| `.credits`          | Displays bot creator and license information                              |
 
 ---
 
-## 🗂️ Logs and Notifications
-
-### 🔊 Mute/Unmute Logs
-- **Logged to**: Mute Log Channel (`MUTE_LOG_CHANNEL_ID`).
-- **Details**:
-  - User affected.
-  - Moderator who performed the action.
-  - Timestamp.
-- **User Notification**:
-  - Sends a DM to the affected user about the mute/unmute action.
-
-### 🛡️ Detain Logs
-- **Logged to**: Detain Log Channel (`DETAIN_LOG_CHANNEL_ID`).
-- **Details**:
-  - User detained or undetained.
-  - Timestamp.
-- **User Notification**:
-  - Sends a DM to the user about the detain/undetain action.
-
----
-
-## 🛡️ Configuration
-
-### `.env`
-Store sensitive data, like the bot token, in this file:
-```env
-DISCORD_BOT_TOKEN=your-bot-token-here
-```
-
-### `config.json`
-Customize server-specific settings:
-- **MUTE_LOG_CHANNEL_ID**: Channel ID for mute/unmute logs.
-- **DETAIN_ROLE_ID**: Role ID for the detain role.
-- **DETAIN_LOG_CHANNEL_ID**: Channel ID for detain logs.
-- **VOICEMASTER_BOT_ID**: VoiceMaster bot ID (optional).
-
----
-
-## 🖼️ Example Usage Scenarios
-
-### 🎤 User Joins Voice Channel Muted
-1. A user joins a voice channel while muted.
-2. The bot detects this and unmutes the user automatically.
-3. Logs the action in the "Mute Log" channel.
-4. Sends a DM to the user notifying them of the unmute.
+## 🧪 Example Scenario
 
 ### 🛡️ Detaining a User
-Note: You need to create a role called “Detained” in your Discord server. This role should have restricted permissions, such as no access to most channels except a specific “detention” channel (if desired). The bot assigns this role to users when they are detained.
-1. A moderator uses `.detain @user` in any text channel.
-2. The bot assigns the "Detain Role" to the user.
-3. Logs the action in the "Detain Log" channel.
-4. Sends a direct message to the user notifying them of the detain.
+1. Moderator types `.detain @JohnDoe`
+2. The bot adds the "Detained" role
+3. Logs the event to the Detain Log channel
+4. Sends a DM to the user notifying them
+
+### 🔊 Auto Unmute
+1. A user joins a voice channel muted
+2. The bot unmutes them and logs it
+3. The user receives a DM with the update
+
+---
+
+## 🧩 File Structure
+
+```bash
+discord-voice-manager/
+│
+├── discord_voice_manager.py    # Main bot logic
+├── config.json                 # Your server-specific IDs
+├── .env                        # Your secret bot token
+├── requirements.txt            # Python dependencies
+├── LICENSE                     # MIT License
+└── README.md                   # You are here
+```
 
 ---
 
 ## 🙌 Credits
 
-Developed and maintained by **Artur Pedrotti**.  
-*For inquiries or contributions, feel free to reach out!*  
-[GitHub Profile](https://github.com/arturpedrotti)
+Built and maintained by **Artur Pedrotti**  
+[GitHub](https://github.com/arturpedrotti)
 
 ---
 
 ## 📜 License
 
-This project is open-source and licensed under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+## 🧠 Tips for Contributors
+
+- Fork and clone the repo
+- Add your changes in a new branch
+- Keep commits atomic and clean
+- Use `.env.example` and `config_template.json` to help others
+- Submit a PR 🚀
