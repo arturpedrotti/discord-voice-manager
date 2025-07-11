@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands
 from datetime import datetime
-import asyncio
 import os
 import json
 from dotenv import load_dotenv
@@ -10,18 +9,23 @@ from dotenv import load_dotenv
 load_dotenv()
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
-# Load configuration from config.json
-try:
-    with open('config.json', 'r') as config_file:
-        config = json.load(config_file)
-except FileNotFoundError:
-    print("Error: config.json file not found. Please create it using config_template.json as a guide.")
-    exit()
+if not TOKEN:
+    print("❌ Bot token not found in .env. Please set DISCORD_BOT_TOKEN.")
+    exit(1)
 
-MUTE_LOG_CHANNEL_ID = config.get("MUTE_LOG_CHANNEL_ID")
-DETAIN_ROLE_ID = config.get("DETAIN_ROLE_ID")
-DETAIN_LOG_CHANNEL_ID = config.get("DETAIN_LOG_CHANNEL_ID")
-VOICEMASTER_BOT_ID = config.get("VOICEMASTER_BOT_ID")
+# Load configuration from config.json
+CONFIG_PATH = "config.json"
+try:
+    with open(CONFIG_PATH, "r") as f:
+        config = json.load(f)
+except FileNotFoundError:
+    print(f"❌ {CONFIG_PATH} not found. Please create it from config_template.json.")
+    exit(1)
+
+MUTE_LOG_CHANNEL_ID = int(config.get("MUTE_LOG_CHANNEL_ID", 0))
+DETAIN_ROLE_ID = int(config.get("DETAIN_ROLE_ID", 0))
+DETAIN_LOG_CHANNEL_ID = int(config.get("DETAIN_LOG_CHANNEL_ID", 0))
+VOICEMASTER_BOT_ID = int(config.get("VOICEMASTER_BOT_ID", 0))
 
 # Define bot intents
 intents = discord.Intents.default()
@@ -32,147 +36,105 @@ intents.voice_states = True
 # Initialize bot
 bot = commands.Bot(command_prefix=".", intents=intents)
 
-# Track auto-unmute and mute permissions
-auto_unmute_cache = set()
-mute_permission_granted = {}
-
-
 @bot.event
 async def on_ready():
-    print(f"Logged in as {bot.user}")
-
+    print(f"✅ Logged in as {bot.user}")
 
 @bot.event
 async def on_voice_state_update(member, before, after):
     log_channel = bot.get_channel(MUTE_LOG_CHANNEL_ID)
     if not log_channel:
-        print("Mute log channel not found. Ensure the ID is set in config.json.")
+        print("⚠️ Mute log channel not found. Check config.json.")
         return
 
-    # Auto-unmute logic
-    if (before.channel is None and after.channel is not None) or (before.channel != after.channel):
-        if after.mute:
-            await member.edit(mute=False)  # Automatically unmute
-            embed = discord.Embed(
-                title="Voice Auto Unmute",
-                description=f"User **{member}** was automatically unmuted after joining or switching channels.",
-                color=0x00FF00,
-                timestamp=datetime.utcnow()
-            )
-            embed.set_footer(text=f"User ID: {member.id}")
-            await log_channel.send(embed=embed)
-            await member.send("You have been automatically unmuted after joining or switching channels.")
-            auto_unmute_cache.add(member.id)
-            return
+    if (before.channel != after.channel) and after.mute:
+        await member.edit(mute=False)
+        embed = discord.Embed(
+            title="Voice Auto Unmute",
+            description=f"{member.mention} was automatically unmuted.",
+            color=0x00FF00,
+            timestamp=datetime.utcnow()
+        )
+        embed.set_footer(text=f"User ID: {member.id}")
+        await log_channel.send(embed=embed)
+        await member.send("You were auto-unmuted upon joining/switching voice channels.")
 
-    # Log manual mute/unmute actions
-    if before.mute != after.mute:
-        guild = member.guild
-        action = discord.AuditLogAction.member_update
-        async for entry in guild.audit_logs(action=action, limit=10):
-            if entry.target.id == member.id:
-                moderator = entry.user
-                if moderator == bot.user:
-                    return
-                action_desc = (f"User **{member}** was manually muted by **{moderator}**."
-                               if after.mute else
-                               f"User **{member}** was manually unmuted by **{moderator}**.")
+    elif before.mute != after.mute:
+        async for entry in member.guild.audit_logs(limit=10, action=discord.AuditLogAction.member_update):
+            if entry.target.id == member.id and entry.user != bot.user:
+                action = "muted" if after.mute else "unmuted"
                 embed = discord.Embed(
                     title="Voice Mute Update",
-                    description=action_desc,
+                    description=f"{member.mention} was manually {action} by {entry.user.mention}.",
                     color=0xFF5733 if after.mute else 0x00FF00,
                     timestamp=datetime.utcnow()
                 )
                 embed.set_footer(text=f"User ID: {member.id}")
                 await log_channel.send(embed=embed)
-                await member.send(f"You have been {'muted' if after.mute else 'unmuted'} by {moderator}.")
+                await member.send(f"You were manually {action} by {entry.user}.")
                 break
-
 
 @bot.event
 async def on_member_update(before, after):
     detain_role = discord.utils.get(after.guild.roles, id=DETAIN_ROLE_ID)
     log_channel = bot.get_channel(DETAIN_LOG_CHANNEL_ID)
     if not detain_role or not log_channel:
-        print("Detain role or log channel not found. Check config.json.")
+        print("⚠️ Detain role or log channel not found.")
         return
 
-    # Detain/Undetain role updates
     if detain_role in after.roles and detain_role not in before.roles:
-        embed = discord.Embed(
-            title="Detain Role Update",
-            description=f"User **{after}** was detained.",
+        await log_channel.send(embed=discord.Embed(
+            title="User Detained",
+            description=f"{after.mention} was detained.",
             color=0xFF0000,
             timestamp=datetime.utcnow()
-        )
-        embed.set_footer(text=f"User ID: {after.id}")
-        await log_channel.send(embed=embed)
+        ).set_footer(text=f"User ID: {after.id}"))
         await after.send("You have been detained in the server.")
 
     elif detain_role not in after.roles and detain_role in before.roles:
-        embed = discord.Embed(
-            title="Detain Role Update",
-            description=f"User **{after}** was undetained.",
+        await log_channel.send(embed=discord.Embed(
+            title="User Undetained",
+            description=f"{after.mention} was undetained.",
             color=0x00FF00,
             timestamp=datetime.utcnow()
-        )
-        embed.set_footer(text=f"User ID: {after.id}")
-        await log_channel.send(embed=embed)
+        ).set_footer(text=f"User ID: {after.id}"))
         await after.send("You have been undetained in the server.")
-
 
 @bot.command()
 @commands.has_permissions(manage_roles=True)
 async def detain(ctx, member: discord.Member):
-    detain_role = discord.utils.get(ctx.guild.roles, id=DETAIN_ROLE_ID)
-    if not detain_role:
-        await ctx.send("Detain role not found. Check config.json.")
+    role = discord.utils.get(ctx.guild.roles, id=DETAIN_ROLE_ID)
+    if not role:
+        await ctx.send("⚠️ Detain role not found.")
         return
-    await member.add_roles(detain_role)
-    await ctx.send(f"User **{member}** has been detained.")
-    await member.send("You have been detained in the server.")
-    log_channel = bot.get_channel(DETAIN_LOG_CHANNEL_ID)
-    if log_channel:
-        embed = discord.Embed(
-            title="Detain Role Update",
-            description=f"User **{member}** was detained.",
-            color=0xFF0000,
-            timestamp=datetime.utcnow()
-        )
-        embed.set_footer(text=f"User ID: {member.id}")
-        await log_channel.send(embed=embed)
-
+    await member.add_roles(role)
+    await ctx.send(f"{member.mention} has been detained.")
+    await member.send("You have been detained.")
+    await log_embed(ctx.guild, DETAIN_LOG_CHANNEL_ID, f"{member.mention} was detained.", 0xFF0000, member.id)
 
 @bot.command()
 @commands.has_permissions(manage_roles=True)
 async def undetain(ctx, member: discord.Member):
-    detain_role = discord.utils.get(ctx.guild.roles, id=DETAIN_ROLE_ID)
-    if not detain_role:
-        await ctx.send("Detain role not found. Check config.json.")
+    role = discord.utils.get(ctx.guild.roles, id=DETAIN_ROLE_ID)
+    if not role:
+        await ctx.send("⚠️ Detain role not found.")
         return
-    await member.remove_roles(detain_role)
-    await ctx.send(f"User **{member}** has been undetained.")
-    await member.send("You have been undetained in the server.")
-    log_channel = bot.get_channel(DETAIN_LOG_CHANNEL_ID)
-    if log_channel:
+    await member.remove_roles(role)
+    await ctx.send(f"{member.mention} has been undetained.")
+    await member.send("You have been undetained.")
+    await log_embed(ctx.guild, DETAIN_LOG_CHANNEL_ID, f"{member.mention} was undetained.", 0x00FF00, member.id)
+
+async def log_embed(guild, channel_id, description, color, user_id):
+    channel = guild.get_channel(channel_id)
+    if channel:
         embed = discord.Embed(
             title="Detain Role Update",
-            description=f"User **{member}** was undetained.",
-            color=0x00FF00,
+            description=description,
+            color=color,
             timestamp=datetime.utcnow()
         )
-        embed.set_footer(text=f"User ID: {member.id}")
-        await log_channel.send(embed=embed)
+        embed.set_footer(text=f"User ID: {user_id}")
+        await channel.send(embed=embed)
 
-
-# Run the bot
-if TOKEN:
-    bot.run(TOKEN)
-else:
-    print("Bot token is not set. Please add it to the .env file.")
-
-
-## Credits
-This bot was created and maintained by **Artur Pedrotti**.
-
-Feel free to contribute or reach out for any queries!
+# Start bot
+bot.run(TOKEN)
